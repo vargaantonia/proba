@@ -65,6 +65,10 @@ namespace IngatlanokBackend
         public static void Main(string[] args)
         {   
             var builder = WebApplication.CreateBuilder(args);
+            var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
+
+            builder.Services.AddDbContext<IngatlanberlesiplatformContext>(options =>
+                options.UseMySQL(connectionString, ServerVersion.AutoDetect(connectionString)));
 
             builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
