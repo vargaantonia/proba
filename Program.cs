@@ -5,6 +5,10 @@ using MySqlX.XDevAPI;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using Pomelo.EntityFrameworkCore.MySql;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace IngatlanokBackend
 {  
@@ -64,11 +68,12 @@ namespace IngatlanokBackend
 
         public static void Main(string[] args)
         {   
-            var builder = WebApplication.CreateBuilder(args);
+           var builder = WebApplication.CreateBuilder(args);
+
             var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
 
-            builder.Services.AddDbContext<IngatlanberlesiplatformContext>(options =>
-                options.UseMySQL(connectionString, ServerVersion.AutoDetect(connectionString)));
+            builder.Services.AddDbContext<HalakDbContext>(options =>
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
             builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
