@@ -1,13 +1,14 @@
 using IngatlanokBackend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using MySql.EntityFrameworkCore;
 using MySqlX.XDevAPI;
 using System.Net.Mail;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using System.Text;
 
 namespace IngatlanokBackend
 {  
@@ -66,35 +67,37 @@ namespace IngatlanokBackend
         }
 
         public static void Main(string[] args)
-        {   
-           var builder = WebApplication.CreateBuilder(args);
+        {
+            var builder = WebApplication.CreateBuilder(args);
 
-            var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING");
+            // Kapcsolati string környezeti változóból vagy appsettings.json-ből
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                                  ?? Environment.GetEnvironmentVariable("CONNECTION_STRING");
 
-            builder.Services.AddDbContext<HalakDbContext>(options =>
+            // DbContext beállítása
+            builder.Services.AddDbContext<IngatlanberlesiplatformContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
             builder.Configuration.SetBasePath(Directory.GetCurrentDirectory());
             builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-            builder.Services.AddDbContext<IngatlanberlesiplatformContext>(options =>
-                options.UseMySQL(builder.Configuration.GetConnectionString("DefaultConnection")));
-
             builder.Services.AddControllers();
 
+            // CORS
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowSpecificOrigin", builder =>
+                options.AddPolicy("AllowSpecificOrigin", policy =>
                 {
-                    builder.WithOrigins("http://localhost:3000")
-                                 .AllowAnyMethod()
-                                 .AllowAnyHeader()
-                                 .AllowAnyOrigin();
+                    policy.WithOrigins("http://localhost:3000")
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials(); // Ezt használd, ha nem akarsz .AllowAnyOrigin()-t
                 });
             });
 
+            // JWT hitelesítés
             builder.Services.AddAuthentication("Bearer")
-                .AddJwtBearer(options =>
+                .AddJwtBearer("Bearer", options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -102,9 +105,10 @@ namespace IngatlanokBackend
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"], 
-                        ValidAudience = builder.Configuration["Jwt:Audience"], 
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])) 
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
                     };
                 });
 
@@ -114,15 +118,18 @@ namespace IngatlanokBackend
 
             var app = builder.Build();
 
+           
             app.UseSwagger();
             app.UseSwaggerUI();
-            
+           
+
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseCors("AllowSpecificOrigin");
             app.MapControllers();
             app.Run();
+
         }
     }
 }
