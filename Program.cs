@@ -5,7 +5,6 @@ using MySqlX.XDevAPI;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
-using Pomelo.EntityFrameworkCore.MySql;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
